@@ -1,0 +1,21 @@
+name: Upload de papéis de parede
+description: Envie imagens para a galeria pública
+title: "[Upload] Meu pacote de wallpapers"
+labels: ["upload"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Obrigado por contribuir!**
+        Anexe aqui seus arquivos (PNG, JPG, WEBP ou GIF). Você pode arrastar e soltar na caixa de texto abaixo.
+  - type: textarea
+    id: info
+    attributes:
+      label: Informações (opcional)
+      description: Nome do pacote/tema, autor e tags (separadas por vírgula).
+      placeholder: |
+        Nome: Pôr do sol no Rio
+        Autor: Fulano
+        Tags: praia, pôr-do-sol, brasil, 4k
+    validations:
+      required: false

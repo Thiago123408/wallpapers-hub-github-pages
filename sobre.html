@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sobre • Wallpapers Hub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <script defer src="assets/js/config.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row">
+      <a class="brand" href="./"><span class="logo">◆</span><strong>Wallpapers</strong> Hub</a>
+      <nav class="nav">
+        <a href="./">Galeria</a>
+        <a class="btn" id="uploadBtn" href="#" target="_blank" rel="noopener">Enviar imagem</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container doc">
+    <h1>Sobre o projeto</h1>
+    <p>Este site é hospedado no <strong>GitHub Pages</strong> e permite que qualquer pessoa contribua com papéis de parede
+    através de <em>Issues</em>. Um <strong>GitHub Action</strong> lê as imagens postadas nos issues, baixa para a pasta
+    <code>/wallpapers/</code> do repositório e atualiza o <code>wallpapers/index.json</code>, que é lido por este site.</p>
+
+    <h2>Como contribuir</h2>
+    <ol>
+      <li>Clique em <strong>Enviar imagem</strong> (abre um issue com modelo).</li>
+      <li>Anexe suas imagens (PNG/JPG/WEBP/GIF) e preencha as informações.</li>
+      <li>Envie o issue. O robô (Actions) baixa os arquivos, cria o commit e atualiza a galeria.</li>
+    </ol>
+
+    <p>Todos os arquivos ficam públicos para qualquer pessoa baixar. Utilize apenas imagens que você tem permissão para distribuir.</p>
+  </main>
+
+  <footer class="footer">
+    <div class="container foot">
+      <span>Feito para GitHub Pages • Upload via Issues + Actions</span>
+      <a id="repoLink" target="_blank" rel="noopener">Repositório</a>
+    </div>
+  </footer>
+</body>
+</html>

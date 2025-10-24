@@ -1,0 +1,132 @@
+name: Ingerir imagens de Issues
+
+on:
+  issues:
+    types: [opened, edited, labeled, reopened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  ingest:
+    if: contains(github.event.issue.labels.*.name, 'upload')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checar repositório
+        uses: actions/checkout@v4
+
+      - name: Extrair URLs de imagens do issue
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const re = /(https?:\/\/\S+\.(?:png|jpe?g|webp|gif))/ig;
+            const urls = [...body.matchAll(re)].map(m => m[1]);
+            core.setOutput('urls', JSON.stringify(urls));
+            core.info(`Encontradas ${urls.length} URLs`);
+
+      - name: Baixar imagens
+        if: steps.parse.outputs.urls != '[]'
+        run: |
+          mkdir -p wallpapers
+          python3 - << 'PY'
+          import os, re, json, pathlib, urllib.request
+          urls = json.loads(os.environ['URLS'])
+          os.makedirs('wallpapers', exist_ok=True)
+
+          def sanitize(name):
+            name = re.sub(r'[^a-zA-Z0-9._-]+','-', name).strip('-') or 'img'
+            return name
+
+          i = 1
+          saved = []
+          for u in urls:
+            base = os.path.basename(u.split('?')[0])
+            base = sanitize(base)
+            if not re.search(r'\.(png|jpg|jpeg|webp|gif)$', base, re.I):
+              base += '.png'
+            dest = pathlib.Path('wallpapers') / base
+            while dest.exists():
+              stem = dest.stem + f'-{i}'
+              dest = dest.with_name(stem + dest.suffix)
+              i += 1
+            print('baixando', u, '->', dest)
+            try:
+              urllib.request.urlretrieve(u, dest.as_posix())
+              saved.append(dest.as_posix())
+            except Exception as e:
+              print('falha ao baixar', u, e)
+          with open('saved.txt','w') as f:
+            f.write('\\n'.join(saved))
+          PY
+        env:
+          URLS: ${{ steps.parse.outputs.urls }}
+
+      - name: Atualizar index.json
+        run: |
+          python3 - << 'PY'
+          import os, json, datetime, re
+          from pathlib import Path
+
+          root = Path('wallpapers')
+          items = []
+          if root.exists():
+            for p in sorted(root.iterdir()):
+              if p.is_file() and re.search(r'\.(png|jpg|jpeg|webp|gif)$', p.name, re.I):
+                it = {
+                  "name": p.stem.replace('-', ' '),
+                  "url": f"wallpapers/{p.name}",
+                  "github_url": f"https://github.com/${{ github.repository }}/blob/main/wallpapers/{p.name}",
+                  "tags": [],
+                  "resolution": "",
+                  "author": "",
+                  "added": datetime.datetime.utcnow().isoformat(timespec='seconds') + "Z"
+                }
+                items.append(it)
+          Path('wallpapers').mkdir(exist_ok=True)
+          with open('wallpapers/index.json','w') as f:
+            json.dump(items, f, ensure_ascii=False, indent=2)
+          PY
+
+      - name: Commit e push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wallpapers/
+          if git diff --cached --quiet; then
+            echo "Nada para commitar."
+          else
+            git commit -m "Ingerir imagens do issue #${{ github.event.issue.number }}"
+            git push
+          fi
+
+      - name: Comentar e fechar issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let list = '';
+            try { list = fs.readFileSync('saved.txt','utf8'); } catch {}
+            const lines = list ? list.split('\n').filter(Boolean).map(p => `- ${p}`) : ['(nenhuma imagem baixada)'];
+            const body = [
+              'Imagens ingeridas e publicadas na pasta `/wallpapers`:',
+              ...lines,
+              '',
+              'A galeria no GitHub Pages será atualizada em breve. ✔️'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
